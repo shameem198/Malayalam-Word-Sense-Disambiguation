@@ -1,0 +1,225 @@
+#!/usr/bin/python
+# -*- coding: utf_8 -*-
+
+
+
+
+import os, sys
+from io import open
+from nltk.tokenize import word_tokenize,sent_tokenize
+import pandas as pd
+import numpy as np
+from  sklearn.cross_validation import train_test_split
+from  sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.svm import LinearSVC
+from sklearn.metrics import accuracy_score
+from importlib import reload
+import tkinter as tk
+from tkinter import *
+import tkinter
+import os
+import time
+import itertools
+from time import*
+from tkinter import messagebox
+from tkinter import filedialog
+from PIL import ImageTk,Image
+
+
+
+def Folder():
+    global Dirname
+    global file_name
+    ResultBox.delete(1.0, END)
+    Dirname = filedialog.askopenfilename(filetypes=[("Text files","*.txt")])
+	#Dirname = filedialog.askdirectory(
+    E1.insert(0,Dirname)
+	#os.system(Dirname)
+    file_name=open(Dirname,'r',encoding='utf-8')
+    file_name=file_name.read()
+    #ResultBox.insert(END,file_name)
+    
+def display_doc():
+    #inp_file1=open('input.txt', encoding="utf8")
+    #inp_file=inp_file1.read()
+    ResultBox.delete(1.0, END)
+    ResultBox.insert(END,file_name)
+    
+def amb_sent_no():
+    #inp_file1=open('input.txt', encoding="utf8")
+    #inp_file=inp_file1.read()
+    sent = sent_tokenize(file_name)
+    words =open('amb_corpus.txt',encoding="utf8").read()
+    words = word_tokenize(words)
+    amb_sent=[]
+    for word1 in words:
+        for sent1 in sent:
+            sent1=sent1.strip('.')
+            sent_words=sent1.split()
+            if word1 in sent_words:
+                amb_sent.append(sent1)
+    amb_no=len(amb_sent)
+    ResultBox.delete(1.0, END)
+    ResultBox.insert(END,"Number of Ambiguous Sentences:")
+    ResultBox.insert(END,amb_no)
+        
+def ambsent():
+    sent = sent_tokenize(file_name)
+    words =open('amb_corpus.txt',encoding="utf8").read()
+    words = word_tokenize(words)
+    ResultBox.delete(1.0, END)
+    amb_sent=[]
+    for word1 in words:
+        for sent1 in sent:
+            sent1=sent1.strip('.')
+            sent_words=sent1.split()
+            if word1 in sent_words:
+                amb_sent.append(sent1)
+    ResultBox.insert(END,"-------------------------------------------Ambiguous Sentences--------------------------------------")
+    for items in amb_sent:
+        ResultBox.insert(END,items)
+        ResultBox.insert(END,".\n")
+        
+                
+                
+        
+def wsd():
+    #inp_file1=open('input.txt', encoding="utf8")
+    #inp_file=inp_file1.read()
+    sent = sent_tokenize(file_name)
+    words =open('amb_corpus.txt',encoding="utf8").read()
+    words = word_tokenize(words)
+   
+    amb_sent=[]
+    for word1 in words:
+        for sent1 in sent:
+            sent1=sent1.strip('.')
+            sent_words=sent1.split()
+            if word1 in sent_words:
+                amb_sent.append(sent1)
+    with  open("amb_sent.txt","w",encoding="utf-8") as f1:
+        f1.write("\n".join(amb_sent))
+    df=pd.read_csv('mal_corpus.csv',names=['sentence','Ambiguous_word','index','Sense'],skiprows=1)
+    df_x=df["sentence"]
+    df_u=df["Ambiguous_word"]
+    df_y=df['index']
+    df_v=df['Sense']
+    cv = TfidfVectorizer(input="content",encoding="utf-8",norm="l2")
+    xtrain_cv=cv.fit_transform(df_x)
+    y_train=df_y.astype('int')
+    clf = LinearSVC(penalty='l2', loss='squared_hinge', dual=True, tol=0.0001, C=1.0, multi_class='ovr', fit_intercept=True, intercept_scaling=1, class_weight=None, verbose=0, random_state=None, max_iter=1000)
+    clf.fit(xtrain_cv,y_train)
+    ResultBox.delete(1.0, END)
+    for sentence in amb_sent:
+        #ResultBox.delete(1.0, END)
+        ResultBox.insert(END,"Ambiguous  Sentence:")
+        ResultBox.insert(END,sentence)
+        ResultBox.insert(END,"\n")
+        sent_words=sentence.split()
+        word2=[]
+        for word1 in words:
+            if word1 in sent_words:
+                ResultBox.insert(END,"Ambiguous Word:")
+                ResultBox.insert(END,word1)
+                ResultBox.insert(END,"\n")
+                word2.append(word1)
+        test_sentence=[sentence]
+        test_sentencevector=cv.transform(test_sentence)
+        pred_sentence=clf.predict(test_sentencevector)
+        str1=str(pred_sentence)
+        print(str1)
+        df_y1=list(df_y)
+        if(pred_sentence in df_y1):
+            for i,j in enumerate(df_y1,0):
+                if(j==pred_sentence):
+                    ResultBox.insert(END,"Predicted Sense:")
+                    ResultBox.insert(END,df_v[i])
+                    ResultBox.insert(END,"\n")
+                    ResultBox.insert(END,"----------------------------------------------------------------------------------------------------\n")
+                    break
+
+def Accuracy_model():
+    #inp_file1=open('input.txt', encoding="utf8")
+    #inp_file=inp_file1.read()
+    sent = sent_tokenize(file_name) 
+    words =open('amb_corpus.txt',encoding="utf8").read()
+    words = word_tokenize(words)
+    amb_sent=[]
+    for word1 in words:
+        for sent1 in sent:
+            sent1=sent1.strip('.')
+            sent_words=sent1.split()
+            if word1 in sent_words:
+                amb_sent.append(sent1)
+            with  open("amb_sent.txt","w",encoding="utf-8") as f1:
+                f1.write("\n".join(amb_sent))
+    df=pd.read_csv('mal_corpus.csv',names=['sentence','Ambiguous_word','index','Sense'],skiprows=1)
+    df_x=df["sentence"]
+    df_y=df['index']
+    cv = TfidfVectorizer(input="content",encoding="utf-8",norm="l2")
+    x_train,x_test,y_train,y_test=train_test_split(df_x,df_y,test_size=0.23,random_state=11)
+    xtrain_cv=cv.fit_transform(x_train)
+    xtest_cv=cv.transform(x_test)
+    clf = LinearSVC(penalty='l2', loss='squared_hinge', dual=True, tol=0.0001, C=1.0, multi_class='ovr', fit_intercept=True, intercept_scaling=1, class_weight=None, verbose=0, random_state=None, max_iter=1000)
+    y_train=y_train.astype('int')
+    y_test=y_test.astype('int')
+    clf.fit(xtrain_cv,y_train)
+    pred=clf.predict(xtest_cv)
+    Accuracy=accuracy_score(y_test,pred)
+    Accuracy=Accuracy*100
+    ResultBox.delete(1.0, END)
+    ResultBox.insert(END,"Accuracy of the model:")
+    ResultBox.insert(END,Accuracy)
+    ResultBox.insert(END,"%")
+            
+'''display_doc()
+amb_sent_no()
+wsd()
+Accuracy_model()'''
+
+
+
+#file_path='C:\\Users\\Shameem Bin Kareem\\Desktop\\bg.jpg'
+#image1 = PhotoImage(file_path)
+
+window = tkinter.Tk()
+window.title('Malayalam Word Sense Disambiguation')
+window.geometry("1000x1000")
+window.resizable(width=False, height=False)
+image = tk.PhotoImage(file="D:\\bg.png")
+label = tk.Label(image=image)
+label.pack()
+
+
+
+
+L1 = Label(window, text="Malayalam Word sense disambiguation",fg='green',padx = 1, pady = 5)
+labelfont = ('times', 22, 'bold')
+L1.config(font=labelfont)
+L1.place(x=250, y=30)
+
+dirBut = Button(window, text='Choose Document', command = Folder, highlightcolor='red', bg="lightgrey")
+dirBut.place(x=210, y=105)
+
+E1 = Entry(window, bd =10,width=50)
+E1.place(x=350, y=100)
+
+DISPLAY = Button(window, text='display document',command = display_doc, highlightcolor='red',bg='lightyellow')
+DISPLAY.place(x=100, y=200)
+
+AMB_SENT_NO = Button(window, text='No.of Ambiguous Sentences.',command = amb_sent_no , highlightcolor='red',bg='lightyellow')
+AMB_SENT_NO.place(x=250, y=200)
+
+AMBSENT = Button(window, text='Ambiguous Sentences',command = ambsent , highlightcolor='red',bg='lightyellow')
+AMBSENT.place(x=450, y=200)
+
+WSD = Button(window, text='Disambiguate Word Sense',command = wsd, highlightcolor='red',bg='lightyellow')
+WSD.place(x=625, y=200)
+
+ACCURACY=Button(window,text='Accuracy',command=Accuracy_model,highlightcolor='red',bg='lightyellow')
+ACCURACY.place(x=820,y=200)
+
+ResultBox = Text(window, height=24, width=100)
+ResultBox.place(x=90, y=300)
+window.mainloop()				
+
